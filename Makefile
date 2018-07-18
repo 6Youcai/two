@@ -1,2 +1,7 @@
+CC= g++
+CFLAGS = -std=c++11
+DIR_INC = /data/home/pengl/App/Lib/C/htslib/Install/include
+LIBRARY_DIRS = /data/home/pengl/App/Lib/C/htslib/Install/lib
+TARGET = two
 two: use.segment.cpp segment.cpp
-	g++ use.segment.cpp -I /data/home/pengl/App/Lib/C/htslib/Install/include -L /data/home/pengl/App/Lib/C/htslib/Install/lib -lhts -o two segment.cpp
+	$(CC) $(CFLAGS) $< -I $(DIR_INC) -L $(LIBRARY_DIRS) -lhts -o $(TARGET) segment.cpp
