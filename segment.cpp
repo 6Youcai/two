@@ -1,6 +1,6 @@
 #include "segment.h"
 #include <string>
-// #include <iostream>
+#include <iostream>
 
 uint8_t Base[16] = {0,65,67,0,71,0,0,0,84,0,0,0,0,0,0,78};
 
@@ -12,7 +12,9 @@ Segment::Segment(bam1_t *b) {
   flag = b->core.flag;
 }
 
-Segment::~Segment() {}
+Segment::~Segment() {
+  std::cout << "Bye" << std::endl;
+}
 
 //
 std::string Segment::query_sequence() {
