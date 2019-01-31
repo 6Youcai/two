@@ -1,61 +1,39 @@
 #include <iostream>
-#include <htslib/sam.h>
-#include <vector>
-#include <map>
-
-// g++ main.cpp -I /data/home/pengl/App/Lib/C/htslib/Install/include -L /data/home/pengl/App/Lib/C/htslib/Install/lib -lhts
-// https://github.com/samtools/htslib/blob/develop/htslib/sam.h
-
-using namespace std;
-
-// "=ACMGRSVTWYHKDBN"
-uint8_t Base[16] = {0,65,67,0,71,0,0,0,84,0,0,0,0,0,0,78};
-
-string get_sequence(const bam1_t *aln) {
-  int length = aln->core.l_qseq;
-  uint8_t *seq = bam_get_seq(aln);
-  string sequence(length, '\0');
-  for (int i = 0; i < length; i++)
-    sequence[i] = Base[bam_seqi(seq, i)];
-  return sequence;
-}
-
-string get_quality(const bam1_t *aln) {
-  int length = aln->core.l_qseq;
-  uint8_t *qual = bam_get_qual(aln);
-  string quality(length, '\0');
-  for (int i = 0; i < length; i++)
-    quality[i] = qual[i] + 33;
-  return quality;
-}
-
-bool is_proper_pair(const bam1_t *aln) {
-  uint16_t flag = aln->core.flag;
-    return (flag & 2) != 0;
-}
+#include "segment.h"
+#include <string> 
 
 int main() {
-  samFile *in;
-  in = sam_open("/data2/Genomics/xuyw/ctDNA0426_backup/lane_1_AGGCAGAA.bam", "r");
+  samFile *in = sam_open("/data2/Genomics/xuyw/ctDNA0426_backup/lane_4_TAAGGCGA.bam", "r");
+  samFile *out = sam_open("out.cpp.bam", "wb");
 
   bam_hdr_t *header = sam_hdr_read(in);
-  bam1_t *aln = bam_init1();
-  
-  // map<string, bam1_t*> dict;
-  long good = 0, all = 0;
-
-  while(sam_read1(in, header, aln) >= 0) {
-    int32_t start = aln->core.pos;
-    // string name = bam_get_qname(aln);
-    // string seq = get_sequence(aln);
-    // string qual = get_quality(aln);
-    // string umi = seq.substr(0, 9);
-
-    if (is_proper_pair(aln))
-      good++;
-    all++;
+  if (sam_hdr_write(out, header) < 0) {
+    std::cerr << "Cannot write BAM file" << std::endl;
+    return 0;
   }
-  cout << "proper_pair: " << good << endl;
-  cout << "all reads:" << all << endl;
+
+
+  char **references = header->target_name;
+
+  bam1_t *b = bam_init1();
+  // input
+  while(sam_read1(in, header, b) >= 0) {
+    AlignedSegment read(b);
+    if (read.is_unmapped() || read.is_secondary() || read.is_supplementary() || (!read.is_proper_pair())) {
+        // output
+        if (sam_write1(out, header, b) < 0 ) {
+          std::cerr << "write failed" << std::endl;
+          return 1;
+        }
+        continue;
+    }
+    std::cout << read.query_name() << "\t" << read.map_coordinate() << std::endl;
+
+  }
+
+  bam_hdr_destroy(header);
+  bam_destroy1(b);
+  sam_close(in);
+  sam_close(out);
   return 0;
 }
